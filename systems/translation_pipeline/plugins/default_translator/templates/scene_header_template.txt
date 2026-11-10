@@ -1,3 +1,0 @@
-━━━━ ✨ *Scene {{scene_number}}* ✨ ━━━━
-{{#if environment}}_{{environment}}_{{/if}}
-• ━ ━ ━ ━ ━ ━ ━ ━ •
