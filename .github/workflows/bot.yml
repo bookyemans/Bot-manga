@@ -1,0 +1,56 @@
+name: Run Manga Translation Bot
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_duration:
+        description: 'مدة تشغيل البوت بالدقائق (من 1 إلى 359)'
+        required: true
+        default: '300'
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create .env file
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          AI_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ADMIN_IDS: ${{ secrets.SUPER_ADMIN_IDS }}
+        shell: bash
+        run: |
+          umask 077
+          printf 'MANGA_BOT_TELEGRAM_BOT_TOKEN=%s\n' "$TG_TOKEN" > .env
+          printf 'MANGA_BOT_AI_API_KEY=%s\n' "$AI_KEY" >> .env
+          printf 'MANGA_BOT_SUPER_ADMIN_IDS=%s\n' "$ADMIN_IDS" >> .env
+
+      - name: Run Bot
+        env:
+          RUN_DURATION: ${{ inputs.run_duration }}
+        shell: bash
+        run: |
+          if [[ ! "$RUN_DURATION" =~ ^[1-9][0-9]{0,2}$ ]] || (( RUN_DURATION > 359 )); then
+            echo "run_duration must be an integer between 1 and 359."
+            exit 1
+          fi
+          echo "Starting bot for ${RUN_DURATION} minutes..."
+          timeout "${RUN_DURATION}m" python main.py
+          echo "Bot stopped after timeout."
+
+      # The SQLite database is intentionally not uploaded as an artifact:
+      # it may contain user records and API keys. Use private encrypted backups.
